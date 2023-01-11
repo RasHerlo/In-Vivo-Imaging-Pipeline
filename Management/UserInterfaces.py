@@ -6,6 +6,7 @@ from tkinter.filedialog import askdirectory
 from shutil import copytree, copy2, rmtree
 from tqdm import tqdm
 import pathlib
+import string
 
 
 def select_directory(**kwargs) -> str:
@@ -63,3 +64,11 @@ def verbose_copying(SourceFolder: Union[str, pathlib.Path], DestinationFolder: U
         _pbar.update(1)
 
     copytree(SourceFolder, DestinationFolder, copy_function=verbose_copy)
+
+
+def validate_string(String: str) -> bool:
+    return set(String) <= set(string.ascii_letters + string.digits)
+
+
+def validate_path_string(Path: str) -> bool:
+    return set(String) <= set(string.ascii_letters + string.digits + "." + "\\")

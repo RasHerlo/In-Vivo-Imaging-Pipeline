@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from collections import OrderedDict
 import importlib
 from typing import Optional, Callable, Tuple
@@ -51,6 +52,13 @@ class FunctionWrapper:
         # noinspection PyArgumentList
         self.config[Function.__name__] = (Function.__module__, Function, dict(**kwargs))
 
+    def interface(self) -> Tuple:
+        # noinspection PyTypeChecker
+        Functions = [_fun[1] for _fun in self.config.keys()]
+        # noinspection PyTypeChecker
+        Parameters = [_fun[2] for _fun in self.config.keys()]
+        return tuple([Functions, Parameters])
+
     def __json_encode__(self) -> Self:
         """
         Json encoder for wrapped functions
@@ -81,3 +89,68 @@ class FunctionWrapper:
             self.config[_key] = (self.config[_key].get("Module"),
                                  importlib.import_module(self.config[_key].get("Module")).__dict__.get(_key),
                                  self.config[_key].get("Parameters"))
+
+
+def write_wrapper(Wrapper: FunctionWrapper, Filename: Optional[str], Path: Optional[str]) -> None:
+    """
+    This function writes an instance of :class:`Management.Wrapping.FunctionWrapper` to .json for future access
+
+    :param Wrapper: An instance of a function wrapper containing wrapper functions
+    :type Wrapper: Any
+    :param Filename: Filename for saved .json
+    :type Filename: str
+    :param Path: Path to save file in
+    :type Path: str
+    :rtype: None
+    """
+
+    if Filename is none:
+        Filename = "wrapped_functions.json"
+
+    # Validate user input
+    if not validate_string(Filename):
+        ValueError("Please use only standard ascii letters and digits")
+    if not validate_path_string(Filename):
+        ValueError("Please use only standard ascii letters and digits")
+    if ".json" not in Filename:
+        Filename = "".join([Filename, ".json"])
+    if Path is not None:
+        Filename = "".join([Path, "\\", Filename])
+    else:
+        Filename = "".join([os.getcwd(), "\\", Filename])
+
+    # Serialize to .json
+    _wrapped_functions = dumps(Wrapper)
+
+    # Actually write
+    with open(Filename, "w") as _file:
+        _file.write(_wrapped_functions)
+    _file.close()
+    print("\nSaved Function Wrapper to File.")
+
+
+def read_wrapper(Filepath: str) -> FunctionWrapper:
+    """
+    This function reads a wrapped function file .json and instantiates its :class:`Management.Wrapping.FunctionWrapper`
+
+    :param Filepath: Absolute filepath to file
+    :type Filepath: str
+    :return: wrapped function object
+    :rtype: object
+    """
+    # Validate User Input
+    if not validate_path_string(Filepath):
+        ValueError("Please use only standard ascii letters and digits.")
+    if ".json" not in Filepath:
+        Filepath = "".join([Filepath, ".json"])
+    if not os.path.exists(Filepath):
+        FileNotFoundError("Unable to locate file.")
+
+    # Open
+    with open(Filepath, "r") as _file:
+        wrapper = loads(_file.read())
+    _file.close()
+
+    return wrapper
+
+
