@@ -1,0 +1,61 @@
+{
+"__instance_type__": [
+"Management.Wrapping",
+"FunctionWrapper"
+],
+"attributes": {
+"config": {
+"grouped_z_project": {
+"Module": "Imaging.ImageProcessing",
+"Function": "grouped_z_project",
+"Parameters": {
+"BinSize": [
+3,
+1,
+1
+]
+}
+},
+"remove_shutter_artifact": {
+"Module": "Imaging.ImageProcessing",
+"Function": "remove_shutter_artifact",
+"Parameters": {
+"artifact_length": 1000,
+"chunk_size": 7000
+}
+},
+"fast_filter_images": {
+"Module": "Imaging.ImageProcessing",
+"Function": "fast_filter_images",
+"Parameters": {
+"Footprint": {
+"__ndarray__": [
+[
+[
+1.0
+]
+],
+[
+[
+1.0
+]
+],
+[
+[
+1.0
+]
+]
+],
+"dtype": "float64",
+"shape": [
+3,
+1,
+1
+],
+"Corder": true
+}
+}
+}
+}
+}
+}

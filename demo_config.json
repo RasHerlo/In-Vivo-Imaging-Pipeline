@@ -1,0 +1,9 @@
+{
+"preprocess": "C:\\ProgramData\\Anaconda3\\envs\\Calcium-Imaging-Analysis-Pipeline\\Notebooks\\test_wrap.json",
+"suite2p": null,
+"pipeline": "ScratchPad.ImagingAnalysisPipeline",
+"postprocess": null,
+"cascade": null,
+"fissa": null,
+"deepcad": null
+}
