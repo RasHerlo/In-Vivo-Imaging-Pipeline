@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import Union
 import os.path
 import tkinter as tk
-from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askdirectory, askopenfilename
 from shutil import copytree, copy2, rmtree
 from tqdm import tqdm
 import pathlib
 import string
 
 
-def select_directory(**kwargs) -> str:
+def select_directory(**kwargs) -> Union[str, None]:
     """
     Interactive tool for directory selection. All keyword arguments are
     passed to `tkinter.filedialog.askdirectory <https://docs.python.org/3/library/tk.html>`_
@@ -25,6 +25,30 @@ def select_directory(**kwargs) -> str:
     # noinspection PyArgumentList
     path = askdirectory(**kwargs)
     path = str(pathlib.Path(path))
+
+    # destroy root
+    root.destroy()
+    return path
+
+
+def select_file(**kwargs) -> Union[str, None]:
+    """
+    Interactive tool for directory selection. All keyword arguments are
+    passed to `tkinter.filedialog.askopenfilename <https://docs.python.org/3/library/tk.html>`_
+
+    :param kwargs: keyword arguments
+    :return: absolute path to file or None
+    :rtype: str
+    """
+    # Make Root
+    root = tk.Tk()
+
+    # select path
+    # noinspection PyArgumentList
+    path = askopenfilename(**kwargs)
+    path = str(pathlib.Path(path))
+    if path == ".":
+        path = None
 
     # destroy root
     root.destroy()
@@ -71,4 +95,11 @@ def validate_string(String: str) -> bool:
 
 
 def validate_path_string(Path: str) -> bool:
-    return set(String) <= set(string.ascii_letters + string.digits + "." + "\\")
+    if [_char for _char in list(Path) if _char is ":"].__len__() != 1:
+        return False
+    else:
+        return set(Path) <= set(string.ascii_letters + string.digits + "." + "\\" + ":")
+
+
+def validate_config_format(String: str) -> bool:
+    return ".json" in String

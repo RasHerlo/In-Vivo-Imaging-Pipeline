@@ -5,6 +5,7 @@ import importlib
 from typing import Optional, Callable, Tuple
 from json_tricks import dumps, loads
 import numpy as np
+from Management.UserInterfaces import validate_path_string, validate_string
 
 
 class FunctionWrapper:
@@ -54,9 +55,9 @@ class FunctionWrapper:
 
     def interface(self) -> Tuple:
         # noinspection PyTypeChecker
-        Functions = [_fun[1] for _fun in self.config.keys()]
+        Functions = [self.config.get(_key)[1] for _key in self.config.keys()]
         # noinspection PyTypeChecker
-        Parameters = [_fun[2] for _fun in self.config.keys()]
+        Parameters = [self.config.get(_key)[2] for _key in self.config.keys()]
         return tuple([Functions, Parameters])
 
     def __json_encode__(self) -> Self:
@@ -91,7 +92,7 @@ class FunctionWrapper:
                                  self.config[_key].get("Parameters"))
 
 
-def write_wrapper(Wrapper: FunctionWrapper, Filename: Optional[str], Path: Optional[str]) -> None:
+def write_wrapper(Wrapper: FunctionWrapper, Filename: Optional[str] = None, Path: Optional[str] = None) -> None:
     """
     This function writes an instance of :class:`Management.Wrapping.FunctionWrapper` to .json for future access
 
@@ -104,7 +105,7 @@ def write_wrapper(Wrapper: FunctionWrapper, Filename: Optional[str], Path: Optio
     :rtype: None
     """
 
-    if Filename is none:
+    if Filename is None:
         Filename = "wrapped_functions.json"
 
     # Validate user input
@@ -120,7 +121,7 @@ def write_wrapper(Wrapper: FunctionWrapper, Filename: Optional[str], Path: Optio
         Filename = "".join([os.getcwd(), "\\", Filename])
 
     # Serialize to .json
-    _wrapped_functions = dumps(Wrapper)
+    _wrapped_functions = dumps(Wrapper, indent=0)
 
     # Actually write
     with open(Filename, "w") as _file:
@@ -154,3 +155,40 @@ def read_wrapper(Filepath: str) -> FunctionWrapper:
     return wrapper
 
 
+def wrapped_process(ImageStack: np.ndarray, Functions: Tuple[Union[Callable, str]],
+               Parameters: Tuple[dict]) -> np.ndarray:
+    """
+    This is a wrapper for preprocessing. A tuple of functions and a tuple of associated parameters are fed alongside
+    the images to be processed. For example, a single element in a Functions tuple might be *np.max*. It's associated
+     element in the Parameters tuple might be a dictionary containing the keys-value pairs "axis"=1,
+     and keepsdims=False)
+
+    :param ImageStack: A stack of images to be preprocessed
+    :type ImageStack: Any
+    :param Functions: A tuple of callable functions to perform on the image stack
+    :type Functions: tuple[callable]
+    :param Parameters: A tuple of dictionaries containing the associated parameters for each function
+    :type Parameters: tuple[dict]
+    :return: The preprocessed image stack
+    :rtype: Any
+    """
+
+    # quick return if simply passing
+    if Functions is None:
+        return ImageStack
+
+    # actually run if callables passed
+    for _fun, _params in zip(Functions, Parameters):
+        try:
+            ImageStack = _fun(ImageStack, **_params)
+        except TypeError:
+            print("Please pass a tuple of callables and a tuples of dictionaries")
+            return
+        except ModuleNotFoundError:
+            print("Please make sure all requisite modules have been imported")
+            return
+        except AssertionError or RuntimeError or ValueError or ZeroDivisionError:
+            print("Please make sure you have followed the appropriate documentation for passed callables")
+            return
+
+    return ImageStack

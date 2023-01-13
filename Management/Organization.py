@@ -1,5 +1,8 @@
 from __future__ import annotations
-from modified_json_tricks import loads, dumps
+
+import importlib
+
+import json_tricks
 from typing import Union, Tuple, List, Optional
 import os
 from collections import OrderedDict
@@ -14,10 +17,12 @@ from shutil import copytree
 from Imaging.IO import save_raw_binary, determine_bruker_folder_contents, repackage_bruker_tiffs, \
     pretty_print_bruker_command, load_all_tiffs
 from MigrationTools.Converters import renamed_load
-from Management.UserInterfaces import select_directory, verbose_copying
+from Management.UserInterfaces import select_directory, verbose_copying, validate_string, validate_path_string, \
+    select_file, validate_config_format
 from Imaging.BrukerMetaModule import BrukerMeta
 from itertools import product
 from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
+from Management.Wrapping import read_wrapper
 
 
 class Study:
@@ -335,7 +340,7 @@ class Mouse:
 
         _output_file = self.directory + "\\" + "organization.json"
 
-        _outputs = dumps(self, indent=0, maintain_tuples=True)
+        _outputs = json_tricks.dumps(self, indent=0)
         with open(_output_file, "w") as f:
             f.write(_outputs)
         f.close()
@@ -421,7 +426,7 @@ class Mouse:
         print("Loading Experiments...")
         _input_file = Directory + "\\organization.json"
         with open(_input_file, "r") as f:
-            _data = loads(f.read())
+            _data = json_tricks.loads(f.read())
         f.close()
         MouseData = Mouse()
         MouseData.__dict__.update(_data.__dict__)
@@ -749,56 +754,69 @@ class ImagingExperiment(Experiment):
         self.meta = None
         self._fill_imaging_folder_dictionary()
 
-    def analyze_images(self, Config: str, FrameRate: float) -> np.ndarray:
+    def analyze_images(self, FrameRate: float, Config: Optional[dict, str] = None, **kwargs) -> np.ndarray:
         """
         This is a wrapper function to analyze images with a single function
 
-        :param Config: Absolute filepath to a configuration file (.json)
-        :param FrameRate: float of framerate
+        :param Config: Absolute filepath to a configuration file (.json) or loaded dictionary
+        :param FrameRate: float of framerate (if downsampling, use effective framerate)
         :rtype: Any
         """
+
+        # Interactive File Selection
+        _interactive = kwargs.get("interactive", True)
+        if _interactive:
+            Config = select_file(title="Select Config File")
+
+
+        # Validate User Input
+        if Config is not None:
+            if isinstance(Config, str):
+                if not validate_path_string(Config):
+                    ValueError("Please use only standard ascii letters and digits")
+                if not validate_config_format(Config):
+                    ValueError("Please ensure the config is a .json file")
+                with open(Config, "r") as _file:
+                    Config = json_tricks.loads(_file.read())
+            if not isinstance(Config, dict):
+                TypeError("Please load a configuration dictionary or its filepath")
 
         # First, we load our meta data
         self._load_bruker_meta_data()
 
-        # Next, we load any analog recordings that we collected during imaging
+        # Next, we load any analog recordings  or output from prairieview
 
+        # Finally, time to process our data
 
         # for each channel and plane we must:
         # 1. instance an analysis folder,
         # 2. compile the images,
-        # 3. preprocess the data,
         # 4. send through the analysis pipeline
 
+        # Identify channels and planes (unique imaging data sets)
         _channels, _planes = determine_bruker_folder_contents(
             self.folder_dictionary.get("raw_imaging_data").path)[0:2]
         _combos = [range(_channels), range(_planes)]
 
-        # for each channel and plane...
+        # for each channel and plane
         for _combo in product(*_combos): # just generating tuples of all (channel id, plane id)
+
             # Instance analysis folder for this channel/plane
             _string_of_combo = "".join(["_channel_", str(_combo[0]), "_plane_", str(_combo[1])])
             self.add_image_analysis_folder(str(FrameRate), _string_of_combo)
 
-            # Repackage loose, single frame tiffs into stacks
+            # Compile loose, single frame tiffs into stacks
             _name = "".join(["imaging_", str(FrameRate), "Hz", _string_of_combo])
             repackage_bruker_tiffs(self.folder_dictionary.get("raw_imaging_data").path,
                                    self.folder_dictionary.get(_name).folders.get("compiled"),
                                    _combo)
-            self.update_folder_dictionary() # update file contents
-
-            # preprocess
-            _images = load_all_tiffs(self.folder_dictionary.get(_name).folders.get("compiled"))
-            _images = self.preprocess_data(_images) # Need to have added wrapped config import here
-            save_raw_binary(_images, self.folder_dictionary.get(_name).folders.get("compiled"))
-            _final_frames, _final_y, _final_x = _images.shape
-            _images = None
-            self.update_folder_dictionary()
-            self.folder_dictionary.get(_name).clean_up_compilation()
+            # update file indexing
             self.update_folder_dictionary()
 
-            # pipeline
-            self.pipeline(_name, _final_frames, _final_y, _final_x)
+            # run through pipeline if config
+            if isinstance(Config, dict):
+                # noinspection PyTypeChecker
+                self._pipeline(FrameRate, _name, Config)
 
     def add_image_analysis_folder(self, SamplingRate: Union[int, float], *args: Optional[str]) -> Self:
         """
@@ -844,61 +862,6 @@ class ImagingExperiment(Experiment):
         pretty_print_bruker_command(_c, _p, _f, _h, _w)
         verbose_copying(_raw_imaging_data_path, self.folder_dictionary.get("raw_imaging_data").path)
 
-    # noinspection PyMethodMayBeStatic
-    def preprocess(self, ImageStack: np.ndarray, Functions: Tuple[Union[Callable, str]], Parameters: Tuple[dict]) -> np.ndarray:
-        """
-        This is a wrapper for preprocessing. A tuple of functions and a tuple of associated parameters are fed alongside
-        the images to be preprocessed. For example, a single element in a Functions tuple might be *np.max*. It's associated
-         element in the Parameters tuple might be a dictionary containing the keys-value pairs "axis"=1,
-         and keepsdims=False)
-
-        :param ImageStack: A stack of images to be preprocessed
-        :type ImageStack: Any
-        :param Functions: A tuple of callable functions to perform on the image stack
-        :type Functions: tuple[callable]
-        :param Parameters: A tuple of dictionaries containing the associated parameters for each function
-        :type Parameters: tuple[dict]
-        :return: The preprocessed image stack
-        :rtype: Any
-        """
-
-        # quick return if simply passing
-        if Functions is None:
-            return ImageStack
-
-        # actually run if callables passed
-        for _fun, _params in zip(Functions, Parameters):
-            try:
-                ImageStack = _fun(ImageStack, **_params)
-            except TypeError:
-                print("Please pass a tuple of callables and a tuples of dictionaries")
-                return
-            except ModuleNotFoundError:
-                print("Please make sure all requisite modules have been imported")
-                return
-            except AssertionError or RuntimeError or ValueError or ZeroDivisionError:
-                print("Please make sure you have followed the appropriate documentation for passed callables")
-                return
-
-        return ImageStack
-
-    def pipeline(self, Name, Frames, Y, X) -> Self:
-        _s2p = Suite2PAnalysis(self.folder_dictionary.get(Name).folders.get("compiled"),
-                               self.folder_dictionary.get(Name).path, file_type="binary")
-        _s2p.motionCorrect()
-        self.folder_dictionary.get(Name).export_registration_to_denoised(Frames, Y, X)
-        _s2p.ops["meanImg_chan2"] = np.array([0])  # Don't question, needed for now
-        _s2p.ops.pop("meanImg_chan2")  # Don't question, needed for now
-        _s2p.db = _s2p.ops  # Don't question, needed for now
-        _s2p.roiDetection()
-        _s2p.extractTraces()
-        _s2p.classifyROIs()
-        _s2p.spikeExtraction()
-        _s2p.save_files()
-        self.update_folder_dictionary()
-        _s2p = None # garbage
-        return
-
     def load_data(self, ImagingParameters: Optional[Union[dict, list[dict]]] = None) -> Self:
         """
         Loads all data
@@ -918,6 +881,10 @@ class ImagingExperiment(Experiment):
         # Load Imaging Meta
         if ImagingParameters is not None:
             self._load_bruker_meta_data()
+
+    def _pipeline(self, FrameRate, Name, Config):
+        pipeline = importlib.import_module(Config.get("pipeline"))
+        pipeline.pipeline(self, FrameRate, Name, Config)
 
     @classmethod
     def _generate_imaging_sampling_rate_subdirectory(cls, SampFreqDirectory: str) -> None:
@@ -1020,6 +987,10 @@ class ImagingExperiment(Experiment):
         meta.creation_date = get_date()
 
         return meta
+
+    @staticmethod
+    def _default_config() -> dict:
+        return dict()
 
 
 class BehavioralExperiment(Experiment):
