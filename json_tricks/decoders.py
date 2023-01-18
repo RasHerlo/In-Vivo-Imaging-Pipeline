@@ -1,12 +1,11 @@
-import types
 import warnings
 from base64 import standard_b64decode
 from collections import OrderedDict
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
-import importlib
-from modified_json_tricks import NoEnumException, NoPandasException, NoNumpyException
+
+from json_tricks import NoEnumException, NoPandasException, NoNumpyException
 from .utils import ClassInstanceHookBase, nested_index, str_type, gzip_decompress, filtered_wrapper
 
 
@@ -205,24 +204,13 @@ class ClassInstanceHook(ClassInstanceHookBase):
 
 def json_set_hook(dct):
 	"""
-	Return an encoded set to its python representation.
+	Return an encoded set to it's python representation.
 	"""
 	if not isinstance(dct, dict):
 		return dct
 	if '__set__' not in dct:
 		return dct
 	return set((tuple(item) if isinstance(item, list) else item) for item in dct['__set__'])
-
-
-def json_tuple_hook(dct):
-	"""
-	Return an encoded tuple as its python representation
-	"""
-	if not isinstance(dct, dict):
-		return dct
-	if '__tuple__' not in dct:
-		return dct
-	return tuple((tuple(item) if isinstance(item, list) else item) for item in dct['__tuple__'])
 
 
 def pandas_hook(dct):

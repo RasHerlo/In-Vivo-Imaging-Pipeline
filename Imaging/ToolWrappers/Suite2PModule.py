@@ -48,7 +48,7 @@ class Suite2PAnalysis:
         _meta = kwargs.get("meta", None)
         _video_file = kwargs.get("video", None)
         self.file_type = kwargs.get("file_type", "tiff")
-        _ops = kwargs.get("ops", None)
+        self.ops = kwargs.get("ops", None)
 
         # Initialized
         self.db = {
@@ -100,11 +100,8 @@ class Suite2PAnalysis:
             self.db = {**self.db, **_db}
 
         # Default Ops
-        self.ops = {**suite2p.default_ops(), **self.my_default_ops()}
-
-        # Passed Ops
-        if _ops is not None:
-            self.db = {**self.db, **_ops}
+        if self.ops is None:
+            self.ops = {**suite2p.default_ops(), **self.my_default_ops()}
 
         # Final Overwrite
         self.ops = {**self.ops, **self.db}

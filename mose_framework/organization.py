@@ -1,5 +1,6 @@
 from __future__ import annotations
-from modified_json_tricks import loads, dumps
+import importlib
+import json_tricks
 from typing import Union, Tuple, List, Optional
 import os
 from collections import OrderedDict
@@ -14,10 +15,10 @@ from shutil import copytree
 from Imaging.IO import save_raw_binary, determine_bruker_folder_contents, repackage_bruker_tiffs, \
     pretty_print_bruker_command, load_all_tiffs
 from MigrationTools.Converters import renamed_load
-from Management.UserInterfaces import select_directory, verbose_copying
+from mose_framework.user_interfaces import select_directory, verbose_copying, validate_string, validate_path_string, \
+    select_file, validate_config_format, terminal_style
 from Imaging.BrukerMetaModule import BrukerMeta
 from itertools import product
-from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
 
 
 class Study:
@@ -88,9 +89,11 @@ class Mouse:
         self._mouse_id = None
         self._experimental_condition = None
         self._log_file = None
+        self._organization_file = None
 
         # Protected In Practice
         self.log_file = kwargs.get('LogFile', None)
+        self.organization_file = kwargs.get("OrganizationFile", None)
         self.mouse_id = kwargs.get('Mouse', None)
         self.experimental_condition = kwargs.get('Condition', None)
         self.__instance_date = get_date()
@@ -107,14 +110,36 @@ class Mouse:
                 self.directory = os.getcwd()
             self.create()
 
-
-
         # start logging if log file exists
         if self.log_file is not None:
             self.start_log()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.end_log()
+
+    def __str__(self):
+        return "".join([f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Mouse:{terminal_style.RESET} {self.mouse_id}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Study:{terminal_style.RESET} {self.study}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Study Mouse ID:{terminal_style.RESET} "
+                        f"{self.study_mouse}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Experimental Condition:{terminal_style.RESET} "
+                        f"{self.experimental_condition}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Date Created:{terminal_style.RESET} "
+                        f"{self.instance_date}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Directory:{terminal_style.RESET} "
+                        f"{self.directory}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Log File:{terminal_style.RESET} "
+                        f"{self.log_file}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Organization File:{terminal_style.RESET} "
+                        f"{self.organization_file}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Experiments:{terminal_style.RESET} ",
+                        "".join([f"{_experiment}" for _experiment in self.experiments]),
+                        "\n"
+                        f"\nLast modified on "
+                        f"{terminal_style.GREEN}{self.modifications[-1][0]}{terminal_style.RESET} "
+                        f"at "
+                        f"{terminal_style.GREEN}{self.modifications[-1][1]}{terminal_style.RESET}"
+                        ])
 
     @property
     def experimental_condition(self) -> str:
@@ -173,6 +198,22 @@ class Mouse:
         :rtype: str
         """
         return self._Mouse__instance_date
+
+    @property
+    def organization_file(self) -> str:
+        """ Organization file in .json format
+
+        :rtype: str
+        """
+
+        return self._organization_file
+
+    @organization_file.setter
+    def organization_file(self, Path) -> Self:
+        if self._organization_file is None:
+            self._organization_file = Path
+        elif self._organization_file is not None:
+            print("Organization file can only be set ONCE.")
 
     # noinspection All
     def check_log(self) -> Self:  # noinspection All
@@ -333,10 +374,11 @@ class Mouse:
             # noinspection PyAttributeOutsideInit
             self._IP = False
 
-        _output_file = self.directory + "\\" + "organization.json"
+        if self._organization_file is None:
+            self._organization_file = self.directory + "\\" + "organization.json"
 
-        _outputs = dumps(self, indent=0, maintain_tuples=True)
-        with open(_output_file, "w") as f:
+        _outputs = json_tricks.dumps(self, indent=0)
+        with open(self._organization_file, "w") as f:
             f.write(_outputs)
         f.close()
 
@@ -421,7 +463,7 @@ class Mouse:
         print("Loading Experiments...")
         _input_file = Directory + "\\organization.json"
         with open(_input_file, "r") as f:
-            _data = loads(f.read())
+            _data = json_tricks.loads(f.read())
         f.close()
         MouseData = Mouse()
         MouseData.__dict__.update(_data.__dict__)
@@ -749,56 +791,62 @@ class ImagingExperiment(Experiment):
         self.meta = None
         self._fill_imaging_folder_dictionary()
 
-    def analyze_images(self, Config: str, FrameRate: float) -> np.ndarray:
+    def analyze_images(self, FrameRate: float, Pipeline: Optional[dict, str] = None, **kwargs) -> np.ndarray:
         """
         This is a wrapper function to analyze images with a single function
 
-        :param Config: Absolute filepath to a configuration file (.json)
-        :param FrameRate: float of framerate
+        :param Pipeline: Absolute filepath to a configuration file (.json) or loaded dictionary
+        :param FrameRate: float of framerate (if downsampling, use effective framerate)
         :rtype: Any
         """
 
-        # First, we load our meta data
-        self._load_bruker_meta_data()
+        def import_pipeline_function():
+            """
+            Simply imports a pipeline function from a dictionary
+            ugly!!!!
+            """
+            nonlocal Pipeline
+            return importlib.import_module(Pipeline.get("pipeline"))
 
-        # Next, we load any analog recordings that we collected during imaging
+        # Interactive File Selection
+        _interactive = kwargs.get("interactive", False)
+        if _interactive or Pipeline is None:
+            Pipeline = select_file(title="Select Pipeline File")
 
 
-        # for each channel and plane we must:
-        # 1. instance an analysis folder,
-        # 2. compile the images,
-        # 3. preprocess the data,
-        # 4. send through the analysis pipeline
+        # Validate User Input
+        if Pipeline is not None:
+            if isinstance(Pipeline, str):
+                if not validate_path_string(Pipeline):
+                    ValueError("Please use only standard ascii letters and digits")
+                if not validate_config_format(Pipeline):
+                    ValueError("Please ensure the config is a .json file")
+                with open(Pipeline, "r") as _file:
+                    Pipeline = json_tricks.loads(_file.read())
+        if not isinstance(Pipeline, dict):
+            TypeError("Please load a configuration dictionary or its filepath")
 
+        # pull pipeline function
+        pipeline_fun = import_pipeline_function().pipeline
+
+        # Identify channels and planes (unique imaging data sets)
         _channels, _planes = determine_bruker_folder_contents(
             self.folder_dictionary.get("raw_imaging_data").path)[0:2]
         _combos = [range(_channels), range(_planes)]
 
-        # for each channel and plane...
+        # for each channel and plane
         for _combo in product(*_combos): # just generating tuples of all (channel id, plane id)
+
             # Instance analysis folder for this channel/plane
             _string_of_combo = "".join(["_channel_", str(_combo[0]), "_plane_", str(_combo[1])])
             self.add_image_analysis_folder(str(FrameRate), _string_of_combo)
-
-            # Repackage loose, single frame tiffs into stacks
             _name = "".join(["imaging_", str(FrameRate), "Hz", _string_of_combo])
-            repackage_bruker_tiffs(self.folder_dictionary.get("raw_imaging_data").path,
-                                   self.folder_dictionary.get(_name).folders.get("compiled"),
-                                   _combo)
-            self.update_folder_dictionary() # update file contents
 
-            # preprocess
-            _images = load_all_tiffs(self.folder_dictionary.get(_name).folders.get("compiled"))
-            _images = self.preprocess_data(_images) # Need to have added wrapped config import here
-            save_raw_binary(_images, self.folder_dictionary.get(_name).folders.get("compiled"))
-            _final_frames, _final_y, _final_x = _images.shape
-            _images = None
-            self.update_folder_dictionary()
-            self.folder_dictionary.get(_name).clean_up_compilation()
-            self.update_folder_dictionary()
+            # This is janky but i h8 myself rn... Need to attach Config, Folder, Name, Combo
 
-            # pipeline
-            self.pipeline(_name, _final_frames, _final_y, _final_x)
+
+            # Run Pipeline
+            pipeline_fun(self, FrameRate, _combo, _name, Pipeline)
 
     def add_image_analysis_folder(self, SamplingRate: Union[int, float], *args: Optional[str]) -> Self:
         """
@@ -843,61 +891,6 @@ class ImagingExperiment(Experiment):
         _c, _p, _f, _h, _w = determine_bruker_folder_contents(_raw_imaging_data_path)
         pretty_print_bruker_command(_c, _p, _f, _h, _w)
         verbose_copying(_raw_imaging_data_path, self.folder_dictionary.get("raw_imaging_data").path)
-
-    # noinspection PyMethodMayBeStatic
-    def preprocess(self, ImageStack: np.ndarray, Functions: Tuple[Union[Callable, str]], Parameters: Tuple[dict]) -> np.ndarray:
-        """
-        This is a wrapper for preprocessing. A tuple of functions and a tuple of associated parameters are fed alongside
-        the images to be preprocessed. For example, a single element in a Functions tuple might be *np.max*. It's associated
-         element in the Parameters tuple might be a dictionary containing the keys-value pairs "axis"=1,
-         and keepsdims=False)
-
-        :param ImageStack: A stack of images to be preprocessed
-        :type ImageStack: Any
-        :param Functions: A tuple of callable functions to perform on the image stack
-        :type Functions: tuple[callable]
-        :param Parameters: A tuple of dictionaries containing the associated parameters for each function
-        :type Parameters: tuple[dict]
-        :return: The preprocessed image stack
-        :rtype: Any
-        """
-
-        # quick return if simply passing
-        if Functions is None:
-            return ImageStack
-
-        # actually run if callables passed
-        for _fun, _params in zip(Functions, Parameters):
-            try:
-                ImageStack = _fun(ImageStack, **_params)
-            except TypeError:
-                print("Please pass a tuple of callables and a tuples of dictionaries")
-                return
-            except ModuleNotFoundError:
-                print("Please make sure all requisite modules have been imported")
-                return
-            except AssertionError or RuntimeError or ValueError or ZeroDivisionError:
-                print("Please make sure you have followed the appropriate documentation for passed callables")
-                return
-
-        return ImageStack
-
-    def pipeline(self, Name, Frames, Y, X) -> Self:
-        _s2p = Suite2PAnalysis(self.folder_dictionary.get(Name).folders.get("compiled"),
-                               self.folder_dictionary.get(Name).path, file_type="binary")
-        _s2p.motionCorrect()
-        self.folder_dictionary.get(Name).export_registration_to_denoised(Frames, Y, X)
-        _s2p.ops["meanImg_chan2"] = np.array([0])  # Don't question, needed for now
-        _s2p.ops.pop("meanImg_chan2")  # Don't question, needed for now
-        _s2p.db = _s2p.ops  # Don't question, needed for now
-        _s2p.roiDetection()
-        _s2p.extractTraces()
-        _s2p.classifyROIs()
-        _s2p.spikeExtraction()
-        _s2p.save_files()
-        self.update_folder_dictionary()
-        _s2p = None # garbage
-        return
 
     def load_data(self, ImagingParameters: Optional[Union[dict, list[dict]]] = None) -> Self:
         """
@@ -1020,6 +1013,10 @@ class ImagingExperiment(Experiment):
         meta.creation_date = get_date()
 
         return meta
+
+    @staticmethod
+    def _default_config() -> dict:
+        return dict()
 
 
 class BehavioralExperiment(Experiment):

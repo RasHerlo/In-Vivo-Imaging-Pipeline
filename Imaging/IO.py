@@ -195,7 +195,7 @@ def load_all_tiffs(ImageDirectory: str) -> np.ndarray:
     :return: complete_image numpy array [Z x Y x X] as uint16
     :rtype: Any
     """
-    _fnames = os.listdir(ImageDirectory)
+    _fnames = [str(_fname.name) for _fname in pathlib.Path(ImageDirectory).glob("*") if ".tif" in _fname.suffix]
     y_pix, x_pix = tifffile.TiffFile(ImageDirectory + "\\" + _fnames[0]).pages[0].shape
     _num_frames = [] # initialize
     [_num_frames.append(len(tifffile.TiffFile(ImageDirectory + "\\" + _fname).pages)) for _fname in _fnames]

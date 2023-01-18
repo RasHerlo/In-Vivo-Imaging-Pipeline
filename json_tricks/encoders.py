@@ -1,4 +1,3 @@
-import types
 import warnings
 from base64 import standard_b64encode
 from datetime import datetime, date, time, timedelta
@@ -7,7 +6,6 @@ from fractions import Fraction
 from functools import wraps
 from json import JSONEncoder
 from sys import version, stderr
-
 
 from .utils import hashodict, get_module_name_from_object, NoEnumException, NoPandasException, \
 	NoNumpyException, str_type, JsonTricksDeprecation, gzip_compress, filtered_wrapper, is_py3
@@ -45,7 +43,7 @@ class TricksEncoder(JSONEncoder):
 	Each encoder should make any appropriate changes and return an object,
 	changed or not. This will be passes to the other encoders.
 	"""
-	def __init__(self, obj_encoders=None, silence_typeerror=False, primitives=False, fallback_encoders=(), properties=None, maintain_tuples=False, **json_kwargs):
+	def __init__(self, obj_encoders=None, silence_typeerror=False, primitives=False, fallback_encoders=(), properties=None, **json_kwargs):
 		"""
 		:param obj_encoders: An iterable of functions or encoder instances to try.
 		:param silence_typeerror: DEPRECATED - If set to True, ignore the TypeErrors that Encoder instances throw (default False).
@@ -83,34 +81,6 @@ class TricksEncoder(JSONEncoder):
 				'object, consider using `fallback_encoders` like `str` or `lambda o: None`.').format(
 					type(obj), self.__class__.__name__, ', '.join(str(encoder) for encoder in self.obj_encoders)))
 		return obj
-
-	def maintain_tuples(self, obj):
-		"""
-		Convert tuples to maintained tuples
-		"""
-
-		def get_inner(obj_part):
-			if isinstance(obj_part, dict):
-				for k, v in obj_part.items():
-					if isinstance(v, tuple):
-						try:
-							obj_part[k] = maintained_tuple(v)
-						except RuntimeError:
-							print("Warning: can not parse nested tuples")
-					if isinstance(v, dict):
-						get_inner(v)
-			if isinstance(obj_part, list):
-				for e in range(obj_part.__len__()):
-					if isinstance(obj_part[e], tuple):
-						try:
-							obj_part[e] = maintained_tuple(obj_part[e])
-						except RuntimeError:
-							print("Warning: can not parse nested tuples")
-					if isinstance(obj_part, list) or isinstance(obj_part, dict):
-						get_inner(obj_part)
-			return obj_part
-
-		return get_inner(obj)
 
 
 def json_date_time_encode(obj, primitives=False):
@@ -186,7 +156,7 @@ def class_instance_encode(obj, primitives=False):
 	Encodes a class instance to json. Note that it can only be recovered if the environment allows the class to be
 	imported in the same way.
 	"""
-	if isinstance(obj, list) or isinstance(obj, dict) or isinstance(obj, maintained_tuple):
+	if isinstance(obj, list) or isinstance(obj, dict):
 		return obj
 	if hasattr(obj, '__class__') and (hasattr(obj, '__dict__') or hasattr(obj, '__slots__')):
 		if not hasattr(obj, '__new__'):
@@ -342,23 +312,6 @@ def json_set_encode(obj, primitives=False):
 	return obj
 
 
-def json_tuple_encode(obj, primitives=False):
-	"""
-	Encode python tuples as a dictionary with key __tuple__ and a list of the values.
-
-	"""
-	if isinstance(obj, maintained_tuple):
-		try:
-			repr = obj.values
-		except Exception:
-			repr = list(obj.values)
-		if primitives:
-			return repr
-		else:
-			return hashodict(__tuple__=repr)
-	return obj
-
-
 def pandas_encode(obj, primitives=False):
 	from pandas import DataFrame, Series
 	if isinstance(obj, DataFrame):
@@ -414,8 +367,8 @@ def numpy_encode(obj, primitives=False, properties=None):
 			if use_compact is None and json_compression and not getattr(numpy_encode, '_warned_compact', False):
 				numpy_encode._warned_compact = True
 				warnings.warn('storing ndarray in text format while compression in enabled; in the next major version '
-					'of modified_json_tricks, the default when using compression will change to compact mode; to already use '
-					'that smaller format, pass `properties={"ndarray_compact": True}` to modified_json_tricks.dump; '
+					'of json_tricks, the default when using compression will change to compact mode; to already use '
+					'that smaller format, pass `properties={"ndarray_compact": True}` to json_tricks.dump; '
 					'to silence this warning, pass `properties={"ndarray_compact": False}`; '
 					'see issue https://github.com/mverleg/pyjson_tricks/issues/73', JsonTricksDeprecation)
 			# Property 'use_compact' may also be an integer, in which case it's the number of
@@ -496,24 +449,3 @@ class NoNumpyEncoder(JSONEncoder):
 		warnings.warn('`NoNumpyEncoder` is deprecated, use `nonumpy_encode`', JsonTricksDeprecation)
 		obj = nonumpy_encode(obj)
 		return super(NoNumpyEncoder, self).default(obj, *args, **kwargs)
-
-
-class maintained_tuple:
-	def __init__(self, input_tuple):
-		self.values = input_tuple
-
-		for v in self.values:
-			if self.is_nested_element(v):
-				raise RuntimeError("Cannot parse nested tuples")
-		return
-
-	@staticmethod
-	def is_nested_element(element):
-		if isinstance(element, tuple):
-			return True
-		if isinstance(element, list):
-			return True
-		if isinstance(element, dict):
-			return True
-		else:
-			return False

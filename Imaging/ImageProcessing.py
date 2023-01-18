@@ -40,7 +40,7 @@ def filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) ->
     return scipy.ndimage.median_filter(Images, footprint=Footprint)
 
 
-def fast_filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) -> np.ndarray:
+def fast_filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) -> cupy.ndarray:
     """
     GPU-parallelized multidimensional median filter
 
@@ -67,7 +67,7 @@ def fast_filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = Non
     return cupyx.scipy.ndimage.median_filter(cupy.asarray(Images), footprint=Footprint)
 
 
-def remove_shuttle_artifact(Images: np.ndarray, **kwargs: int) -> np.ndarray:
+def remove_shutter_artifact(Images: np.ndarray, **kwargs: int) -> np.ndarray:
     """
     Function to remove the shuttle artifacts present at the initial imaging frames
 
@@ -94,7 +94,8 @@ def remove_shuttle_artifact(Images: np.ndarray, **kwargs: int) -> np.ndarray:
         return Images[_shuttle_artifact_length + _crop_idx:, :, :]
 
 
-def blockwise_fast_filter_tiff(Images: np.ndarray, Footprint: Optional[np.ndarray] = None, **kwargs: int) -> np.ndarray:
+def blockwise_fast_filter_tiff(Images: np.ndarray, Footprint: Optional[np.ndarray] = None, **kwargs: int) \
+        -> np.ndarray:
     """
     GPU-parallelized multidimensional median filter performed in overlapping blocks.
 
@@ -158,8 +159,8 @@ def blockwise_fast_filter_tiff(Images: np.ndarray, Footprint: Optional[np.ndarra
     return Images
 
 
-def grouped_z_project(Images: np.ndarray, BinSize: Union[Tuple[int, int, int], int], DownsampleFunction: Callable[[np.ndarray], np.ndarray]) \
-            -> np.ndarray:
+def grouped_z_project(Images: np.ndarray, BinSize: Union[Tuple[int, int, int], int],
+                      DownsampleFunction: Optional[Callable] = None) -> np.ndarray:
     """
     Utilize grouped z-project to downsample data
 
@@ -174,6 +175,8 @@ def grouped_z_project(Images: np.ndarray, BinSize: Union[Tuple[int, int, int], i
     :return: downsampled image [Z x Y x X]
     :rtype: Any
     """
+    if DownsampleFunction is None:
+        DownsampleFunction = np.mean
     return skimage.measure.block_reduce(Images, block_size=BinSize,
                                                      func=DownsampleFunction).astype(Images.dtype)
     # cast back down from float64
