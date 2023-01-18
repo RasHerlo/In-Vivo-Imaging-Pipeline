@@ -1,4 +1,4 @@
-from mose_framework.Wrapping import FunctionWrapper, write_wrapper, read_wrapper, wrapped_process
+from mose_framework.wrapping import FunctionWrapper, write_wrapper, read_wrapper, wrapped_process
 import pytest
 import numpy as np
 import os
