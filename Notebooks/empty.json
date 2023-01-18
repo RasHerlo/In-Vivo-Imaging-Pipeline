@@ -1,0 +1,1 @@
+{"__instance_type__": ["Management.Wrapping", "FunctionWrapper"], "attributes": {"config": {"sum": {"Module": "numpy", "Function": "sum", "Parameters": {"axis": 1}}, "cumsum": {"Module": "numpy", "Function": "cumsum", "Parameters": {}}, "mean": {"Module": "numpy", "Function": "mean", "Parameters": {"axis": 0}}}}}

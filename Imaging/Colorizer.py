@@ -342,5 +342,82 @@ def generate_custom_map(Colors: List[str]) -> plt.cm.colors.Colormap:
         return plt.cm.jet
 
 
+def rescale_images(Images: np.ndarray, LowCut: float, HighCut: float) -> np.ndarray:
+    """
+    Rescale Images within percentiles
+
+    :param Images: Images to be rescaled
+    :type Images: Any
+    :param LowCut: Low Percentile Cutoff
+    :type LowCut: float
+    :param HighCut: High Percentile Cutoff
+    :type HighCut: float
+    :return: Rescaled Images
+    :rtype: Any
+    """
 
 
+    def rescale(vector: np.ndarray, current_range: Tuple[float, float],
+                desired_range: Tuple[float, float]) -> np.ndarray:
+        return desired_range[0] + ((vector - current_range[0]) * (desired_range[1] - desired_range[0])) / (
+                    current_range[1] - current_range[0])
+
+    assert(0.0 <= LowCut < HighCut <= 100.0)
+
+    _num_frames, _y_pixels, _x_pixels = Images.shape
+    _linearized_image = Images.flatten()
+    _linearized_image = rescale(_linearized_image, (np.percentile(_linearized_image, LowCut),
+                                                    np.percentile(_linearized_image, HighCut)), (0, 255))
+    _linearized_image = np.reshape(_linearized_image, (_num_frames, _y_pixels, _x_pixels))
+    _linearized_image[_linearized_image <= 0] = 0
+    _linearized_image[_linearized_image >= 255] = 255
+
+    return _linearized_image
+
+
+def convert_grayscale_to_color(Image: np.ndarray) -> np.ndarray:
+    """
+    Converts Image to Grayscale
+
+    :param Image: Image to be converted
+    :type Image: Any
+    :return: Color-Grayscale Image
+    :rtype: Any
+    """
+    ColorGrayScaleImage = np.full((*Image.shape, 3), 0, dtype=Image.dtype)
+    for _dim in range(3):
+        ColorGrayScaleImage[:, :, :, _dim] = Image
+
+    return np.uint8(normalize_image(ColorGrayScaleImage) * 255)
+
+
+def generate_background(Images: np.ndarray, Option: str = "True",
+                         Cutoffs: Tuple[float, float] = (0, 100)) -> np.ndarray:
+    if Option == "Black":
+        _background_image = np.zeros(Images.shape, dtype=np.uint8)
+    elif Option == "White":
+        _background_image = np.full(Images.shape, 255, dtype=np.uint8)
+    elif Option == "True":
+        _background_image = rescale_images(Images, Cutoffs[0], Cutoffs[1])
+        _background_image = convert_grayscale_to_color(_background_image)
+    else:  # For now edge cases -> True Option
+        _background_image = rescale_images(Images, Cutoffs[0], Cutoffs[1])
+        _background_image = convert_grayscale_to_color(_background_image)
+
+    return _background_image
+
+
+def normalize_image(Image: np.ndarray) -> np.ndarray:
+    """
+    Normalizes an image for color-mapping
+
+    :param Image: Image to be normalized
+    :type Image: Any
+    :return: Normalized Image
+    :rtype: Any
+    """
+
+    _image = Image.astype(np.float32)
+    _image -= _image.min()
+    _image /= _image.max()
+    return _image

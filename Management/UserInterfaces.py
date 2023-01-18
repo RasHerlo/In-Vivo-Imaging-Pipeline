@@ -25,6 +25,32 @@ def select_directory(**kwargs) -> Union[str, None]:
     # noinspection PyArgumentList
     path = askdirectory(**kwargs)
     path = str(pathlib.Path(path))
+    if path == ".":
+        path = None
+
+    # destroy root
+    root.destroy()
+    return path
+
+
+def select_file(**kwargs) -> Union[str, None]:
+    """
+    Interactive tool for directory selection. All keyword arguments are
+    passed to `tkinter.filedialog.askopenfilename <https://docs.python.org/3/library/tk.html>`_
+
+    :param kwargs: keyword arguments
+    :return: absolute path to file or None
+    :rtype: str
+    """
+    # Make Root
+    root = tk.Tk()
+
+    # select path
+    # noinspection PyArgumentList
+    path = askopenfilename(**kwargs)
+    path = str(pathlib.Path(path))
+    if path == ".":
+        path = None
 
     # destroy root
     root.destroy()

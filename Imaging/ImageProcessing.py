@@ -40,7 +40,7 @@ def filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) ->
     return scipy.ndimage.median_filter(Images, footprint=Footprint)
 
 
-def fast_filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) -> np.ndarray:
+def fast_filter_images(Images: np.ndarray, Footprint: Optional[np.ndarray] = None) -> cupy.ndarray:
     """
     GPU-parallelized multidimensional median filter
 

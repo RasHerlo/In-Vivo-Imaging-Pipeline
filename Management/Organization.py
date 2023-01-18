@@ -23,6 +23,7 @@ from Imaging.BrukerMetaModule import BrukerMeta
 from itertools import product
 from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
 from Management.Wrapping import read_wrapper
+from Notebooks.Demo_pipeline import pipeline
 
 
 class Study:
@@ -754,11 +755,11 @@ class ImagingExperiment(Experiment):
         self.meta = None
         self._fill_imaging_folder_dictionary()
 
-    def analyze_images(self, FrameRate: float, Config: Optional[dict, str] = None, **kwargs) -> np.ndarray:
+    def analyze_images(self, FrameRate: float, Pipeline: Optional[dict, str] = None, **kwargs) -> np.ndarray:
         """
         This is a wrapper function to analyze images with a single function
 
-        :param Config: Absolute filepath to a configuration file (.json) or loaded dictionary
+        :param Pipeline: Absolute filepath to a configuration file (.json) or loaded dictionary
         :param FrameRate: float of framerate (if downsampling, use effective framerate)
         :rtype: Any
         """
@@ -766,32 +767,20 @@ class ImagingExperiment(Experiment):
         # Interactive File Selection
         _interactive = kwargs.get("interactive", True)
         if _interactive:
-            Config = select_file(title="Select Config File")
+            Pipeline = select_file(title="Select Pipeline File")
 
 
         # Validate User Input
-        if Config is not None:
-            if isinstance(Config, str):
-                if not validate_path_string(Config):
+        if Pipeline is not None:
+            if isinstance(Pipeline, str):
+                if not validate_path_string(Pipeline):
                     ValueError("Please use only standard ascii letters and digits")
-                if not validate_config_format(Config):
+                if not validate_config_format(Pipeline):
                     ValueError("Please ensure the config is a .json file")
-                with open(Config, "r") as _file:
-                    Config = json_tricks.loads(_file.read())
-            if not isinstance(Config, dict):
-                TypeError("Please load a configuration dictionary or its filepath")
-
-        # First, we load our meta data
-        self._load_bruker_meta_data()
-
-        # Next, we load any analog recordings  or output from prairieview
-
-        # Finally, time to process our data
-
-        # for each channel and plane we must:
-        # 1. instance an analysis folder,
-        # 2. compile the images,
-        # 4. send through the analysis pipeline
+                with open(Pipeline, "r") as _file:
+                    Pipeline = json_tricks.loads(_file.read())
+        if not isinstance(Pipeline, dict):
+            TypeError("Please load a configuration dictionary or its filepath")
 
         # Identify channels and planes (unique imaging data sets)
         _channels, _planes = determine_bruker_folder_contents(
@@ -804,19 +793,14 @@ class ImagingExperiment(Experiment):
             # Instance analysis folder for this channel/plane
             _string_of_combo = "".join(["_channel_", str(_combo[0]), "_plane_", str(_combo[1])])
             self.add_image_analysis_folder(str(FrameRate), _string_of_combo)
-
-            # Compile loose, single frame tiffs into stacks
             _name = "".join(["imaging_", str(FrameRate), "Hz", _string_of_combo])
-            repackage_bruker_tiffs(self.folder_dictionary.get("raw_imaging_data").path,
-                                   self.folder_dictionary.get(_name).folders.get("compiled"),
-                                   _combo)
-            # update file indexing
-            self.update_folder_dictionary()
 
-            # run through pipeline if config
-            if isinstance(Config, dict):
-                # noinspection PyTypeChecker
-                self._pipeline(FrameRate, _name, Config)
+            # This is janky but i h8 myself rn... Need to attach Config, Folder, Name, Combo
+
+
+            # Run Pipeline
+            pipeline(self, FrameRate, _combo, _name, Pipeline)
+
 
     def add_image_analysis_folder(self, SamplingRate: Union[int, float], *args: Optional[str]) -> Self:
         """
@@ -884,7 +868,7 @@ class ImagingExperiment(Experiment):
 
     def _pipeline(self, FrameRate, Name, Config):
         pipeline = importlib.import_module(Config.get("pipeline"))
-        pipeline.pipeline(self, FrameRate, Name, Config)
+        pipeline.run_pipeline(self, FrameRate, Name, Config)
 
     @classmethod
     def _generate_imaging_sampling_rate_subdirectory(cls, SampFreqDirectory: str) -> None:

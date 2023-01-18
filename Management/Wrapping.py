@@ -155,7 +155,7 @@ def read_wrapper(Filepath: str) -> FunctionWrapper:
     return wrapper
 
 
-def wrapped_process(ImageStack: np.ndarray, Functions: Tuple[Union[Callable, str]],
+def wrapped_process(Input: np.ndarray, Functions: Tuple[Union[Callable, str]],
                Parameters: Tuple[dict]) -> np.ndarray:
     """
     This is a wrapper for preprocessing. A tuple of functions and a tuple of associated parameters are fed alongside
@@ -163,32 +163,29 @@ def wrapped_process(ImageStack: np.ndarray, Functions: Tuple[Union[Callable, str
      element in the Parameters tuple might be a dictionary containing the keys-value pairs "axis"=1,
      and keepsdims=False)
 
-    :param ImageStack: A stack of images to be preprocessed
-    :type ImageStack: Any
-    :param Functions: A tuple of callable functions to perform on the image stack
+    :param Input: Input to be processed
+    :type Input: Any
+    :param Functions: A tuple of callable functions to perform on the input
     :type Functions: tuple[callable]
     :param Parameters: A tuple of dictionaries containing the associated parameters for each function
     :type Parameters: tuple[dict]
-    :return: The preprocessed image stack
+    :return: The processed input
     :rtype: Any
     """
 
     # quick return if simply passing
     if Functions is None:
-        return ImageStack
+        return Input
 
     # actually run if callables passed
     for _fun, _params in zip(Functions, Parameters):
         try:
-            ImageStack = _fun(ImageStack, **_params)
+            Input = _fun(Input, **_params)
         except TypeError:
             print("Please pass a tuple of callables and a tuples of dictionaries")
-            return
         except ModuleNotFoundError:
             print("Please make sure all requisite modules have been imported")
-            return
         except AssertionError or RuntimeError or ValueError or ZeroDivisionError:
             print("Please make sure you have followed the appropriate documentation for passed callables")
-            return
 
-    return ImageStack
+    return Input

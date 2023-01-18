@@ -185,7 +185,6 @@ class ColorImages:
         return Fig
 
 
-
 def convert_grayscale_to_color(Image: np.ndarray) -> np.ndarray:
     """
     Converts Image to Grayscale
