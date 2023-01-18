@@ -6,12 +6,12 @@ from torch.utils.data import DataLoader
 import argparse
 import time
 import datetime
-from Imaging.ModifiedDenoising.network import Network_3D_Unet
+from imaging.modified_denoising.network import Network_3D_Unet
 import numpy as np
-from Imaging.ModifiedDenoising.utils import save_yaml, read_yaml
-from Imaging.ModifiedDenoising.data_process import test_preprocess_lessMemoryNoTail_feedImage, \
+from imaging.modified_denoising.utils import save_yaml, read_yaml
+from imaging.modified_denoising.data_process import test_preprocess_lessMemoryNoTail_feedImage, \
     testset, multibatch_test_save, singlebatch_test_save
-from Imaging.IO import save_raw_binary
+from imaging.io import save_raw_binary
 import pprint
 
 # Make sure to  edit the forking pickler to use protocol 4 in multiprocessing library
@@ -19,7 +19,7 @@ import pprint
 
 class DenoisingAnalysis:
     """
-    Class for ModifiedDenoising Calcium Imaging Data
+    Class for modified_denoising Calcium imaging Data
     """
 
     def __init__(self, ModelName, DataFile, **kwargs):
@@ -65,7 +65,7 @@ class DenoisingAnalysis:
             print('Total number -----> ', len(_img_list))
 
         if _verbose:
-            print("\nModifiedDenoising Parameters:")
+            print("\nmodified_denoising Parameters:")
             pprint.pprint(self.opt.__dict__, width=1)
 
         self.denoiser = Network_3D_Unet(in_channels=1, out_channels=1, f_maps=self.opt.fmap,
@@ -187,7 +187,7 @@ class DenoisingAnalysis:
                     _output_img = None
         if len(_model_list) <= 1:
             del _mapped_output # close the memmap file
-        print("Finished ModifiedDenoising")
+        print("Finished modified_denoising")
 
     @classmethod
     def retrieve_images(cls, opt):

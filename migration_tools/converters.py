@@ -10,29 +10,29 @@ class RenameUnpickler(pkl.Unpickler):
     def find_class(self, module, name):
         renamed_module = module
         if module == "AnalysisModules.BurrowFearConditioning":
-            renamed_module = "Behavior.BurrowFearConditioning"
+            renamed_module = "behavior.BurrowFearConditioning"
         elif module == "AnalysisModules.ExperimentHierarchy":
             renamed_module = "ExperimentManagement.ExperimentHierarchy"
         elif module == "AnalysisModules.Suite2PAnalysis":
-            renamed_module = "Imaging.Suite2PAnalysis"
+            renamed_module = "imaging.Suite2PAnalysis"
         elif module == "AnalysisModules.CascadeAnalysis":
-            renamed_module = "Imaging.CascadeAnalysis"
+            renamed_module = "imaging.CascadeAnalysis"
         elif module == "AnalysisModules.FissaAnalysis":
-            renamed_module = "Imaging.FissaAnalysis"
+            renamed_module = "imaging.FissaAnalysis"
         elif module == "ImagingAnalysis.FissaModule":
-            renamed_module = "Imaging.ToolWrappers.FissaModule"
+            renamed_module = "imaging.tool_wrappers.FissaModule"
         elif module == "ImagingAnalysis.CascadeModule":
-            renamed_module = "Imaging.ToolWrappers.CascadeModule"
-        elif module == "Imaging Analysis.ModifiedDenoising":
-            renamed_module = "Imaging.DenoisingModule"
-        elif module == "Imaging.FissaModule.ProcessedTracesModule":
-            renamed_module = "Imaging.FissaModule.ProcessedTracesDictionary"
-        elif module == "Imaging.FissaModule.ProcessedTracesDictionary":
-            renamed_module = "Imaging.ToolWrappers.FissaModule.ProcessedTracesDictionary"
+            renamed_module = "imaging.tool_wrappers.CascadeModule"
+        elif module == "imaging Analysis.modified_denoising":
+            renamed_module = "imaging.DenoisingModule"
+        elif module == "imaging.FissaModule.ProcessedTracesModule":
+            renamed_module = "imaging.FissaModule.ProcessedTracesDictionary"
+        elif module == "imaging.FissaModule.ProcessedTracesDictionary":
+            renamed_module = "imaging.tool_wrappers.FissaModule.ProcessedTracesDictionary"
         elif module == "BehavioralAnalysis.BurrowFearConditioning":
-            renamed_module = "Behavior.BurrowFearConditioning"
+            renamed_module = "behavior.BurrowFearConditioning"
         elif module == "ImagingAnalysis.Suite2PAnalysis":
-            renamed_module = "Imaging.ToolWrappers.Suite2PModule"
+            renamed_module = "imaging.tool_wrappers.Suite2PModule"
         return super(RenameUnpickler, self).find_class(renamed_module, name)
 
 

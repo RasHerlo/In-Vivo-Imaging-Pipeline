@@ -2,8 +2,8 @@
 "cascade": null,
 "deepcad": null,
 "fissa": null,
-"pipeline": "Imaging.imaging_analysis_pipeline",
+"pipeline": "imaging.imaging_analysis_pipeline",
 "preprocess": null,
 "postprocess": null,
-"suite2p": "Imaging\\suite2p_config.json"
+"suite2p": "imaging\\suite2p_config.json"
 }

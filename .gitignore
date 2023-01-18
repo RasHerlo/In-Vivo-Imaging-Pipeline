@@ -149,7 +149,7 @@ __pycache__/PreprocessingImages.cpython-37.pyc
 requirements.txt
 AnalysisModules/TestFreeze.py
 notebooks/ExperimentalHierarchyExample.ipynb
-Imaging/XXX.py
+imaging/XXX.py
 AnalysisModules/s.py
 AnalysisModules/personal1.py
 *.mat

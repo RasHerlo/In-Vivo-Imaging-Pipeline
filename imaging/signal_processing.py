@@ -317,7 +317,7 @@ def calculate_standardized_noise(DFF: np.ndarray, FrameRate: float) -> Union[flo
     https://www.nature.com/articles/s41593-021-00895-5
 
     :param DFF: Fluorescence over Baseline (DF/F)
-    :param FrameRate: Imaging framerate
+    :param FrameRate: imaging framerate
     :type DFF: Any
     :type FrameRate: float
     :return: standardized noise

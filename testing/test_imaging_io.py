@@ -1,7 +1,7 @@
 import os
 import pytest
 from shutil import rmtree
-from Imaging.IO import determine_bruker_folder_contents, repackage_bruker_tiffs
+from imaging.io import determine_bruker_folder_contents, repackage_bruker_tiffs
 
 FIXTURE_DIR = "".join([os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "\\TestingData"])
 

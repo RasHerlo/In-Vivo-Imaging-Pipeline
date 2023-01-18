@@ -14,8 +14,8 @@ import sys
 
 import ExperimentManagement.ExperimentHierarchy
 from ExperimentManagement.ExperimentHierarchy import BehavioralStage, CollectedDataFolder
-from MigrationTools.Converters import convertFromPy27_Array, convertFromPy27_Dict
-from Behavior.BehaviorUtilities import extract_specific_data, lowpass_filter
+from migration_tools.Converters import convertFromPy27_Array, convertFromPy27_Dict
+from behavior.BehaviorUtilities import extract_specific_data, lowpass_filter
 
 
 class FearConditioning(BehavioralStage):
@@ -122,7 +122,7 @@ class FearConditioning(BehavioralStage):
                 for _sampling in range(1, ImagingParameters.__len__(), 1):
                     self.data = self._sync_grouped_z_projected_images(
                         self.data, self.meta, ImagingParameters[_sampling],
-                        "".join(["Downsampled Imaging Frame Set ", str(_sampling)]))
+                        "".join(["Downsampled imaging Frame Set ", str(_sampling)]))
 
         print("\nFinished loading all data.")
 

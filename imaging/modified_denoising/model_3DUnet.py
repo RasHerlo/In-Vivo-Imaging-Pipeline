@@ -3,8 +3,8 @@ import importlib
 import torch
 import torch.nn as nn
 
-from Imaging.ModifiedDenoising.buildingblocks import Encoder, Decoder, FinalConv, DoubleConv, ExtResNetBlock, SingleConv
-from Imaging.ModifiedDenoising.utils import create_feature_maps
+from imaging.modified_denoising.buildingblocks import Encoder, Decoder, FinalConv, DoubleConv, ExtResNetBlock, SingleConv
+from imaging.modified_denoising.utils import create_feature_maps
 
 
 class UNet3D(nn.Module):

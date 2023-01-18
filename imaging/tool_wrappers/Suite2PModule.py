@@ -7,7 +7,7 @@ from suite2p import gui
 from natsort import natsorted
 import os
 import glob
-from Imaging.IO import load_raw_binary, save_raw_binary
+from imaging.io import load_raw_binary, save_raw_binary
 from typing import Tuple, List, Union, Optional
 from datetime import date, datetime
 

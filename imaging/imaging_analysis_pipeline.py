@@ -2,13 +2,13 @@ from __future__ import annotations
 from typing import Tuple, Union, Callable
 import mose_framework.organization
 from mose_framework.wrapping import read_wrapper, wrapped_process
-from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
-from Imaging.ToolWrappers.FissaModule import FissaAnalysis
-from Imaging.ToolWrappers.CascadeModule import CascadeAnalysis
-from Imaging.IO import load_all_tiffs, save_raw_binary, repackage_bruker_tiffs
-from Imaging.ImageProcessing import remove_shutter_artifact
-from Imaging.SignalProcessing import calculateFiringRate
-from Imaging.Utilities import mergeTraces
+from imaging.tool_wrappers.Suite2PModule import Suite2PAnalysis
+from imaging.tool_wrappers.FissaModule import FissaAnalysis
+from imaging.tool_wrappers.CascadeModule import CascadeAnalysis
+from imaging.io import load_all_tiffs, save_raw_binary, repackage_bruker_tiffs
+from imaging.image_processing import remove_shutter_artifact
+from imaging.signal_processing import calculateFiringRate
+from imaging.utilities import mergeTraces
 import numpy as np
 import json_tricks
 import os

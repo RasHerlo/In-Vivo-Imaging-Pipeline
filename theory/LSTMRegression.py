@@ -1,6 +1,6 @@
 import numpy as np
 import pickle as pkl
-from Theory.DecodingAnalysis import DecodingModule, PerformanceMetrics
+from theory.DecodingAnalysis import DecodingModule, PerformanceMetrics
 from Neural_Decoding.Neural_Decoding.decoders import LSTMRegression
 
 

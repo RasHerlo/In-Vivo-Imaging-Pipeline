@@ -12,12 +12,12 @@ from IPython import get_ipython
 import pathlib
 from tqdm import tqdm
 from shutil import copytree
-from Imaging.IO import save_raw_binary, determine_bruker_folder_contents, repackage_bruker_tiffs, \
+from imaging.io import save_raw_binary, determine_bruker_folder_contents, repackage_bruker_tiffs, \
     pretty_print_bruker_command, load_all_tiffs
-from MigrationTools.Converters import renamed_load
+from migration_tools.Converters import renamed_load
 from mose_framework.user_interfaces import select_directory, verbose_copying, validate_string, validate_path_string, \
     select_file, validate_config_format, terminal_style
-from Imaging.BrukerMetaModule import BrukerMeta
+from imaging.bruker_meta import BrukerMeta
 from itertools import product
 
 
@@ -71,7 +71,7 @@ class Mouse:
         | *_generate_directory_structure* : Generates the Directory Structure (The structured folders where data stored)
         | *_generate_experiment_folders* : Generate Behavioral ExperimentName Folder
         | *_generate_histology_directory* :  Generates Histology Folder
-        | *_generate_imaging_subdirectory* : Generate Imaging Folder
+        | *_generate_imaging_subdirectory* : Generate imaging Folder
         | *_generate_roi_matching_index_directory* : Generate ROI Matching Folder
 
     """
@@ -425,13 +425,13 @@ class Mouse:
         :param Name: Name of Experiment
         :type Name: str
         :keyword Behavior: Include Behavioral Folder (bool, default True)
-        :keyword Imaging: Include Imaging Folder (bool, default True)
+        :keyword Imaging: Include imaging Folder (bool, default True)
         :keyword Analysis: Include Analysis Folder (bool, default True)
         :rtype: None
         """
 
-        _include_behavior = kwargs.get('Behavior', True)
-        _include_imaging = kwargs.get('Imaging', True)
+        _include_behavior = kwargs.get('behavior', True)
+        _include_imaging = kwargs.get('imaging', True)
         _include_analysis = kwargs.get('Analysis', True)
         _include_figures = kwargs.get("Figures", True)
         _experiment_directory = "".join([self.directory, "\\", Name])
@@ -534,7 +534,7 @@ class Mouse:
         :rtype: None
         """
 
-        _base_behav_dir = ExperimentNameDirectory + "\\Behavior"
+        _base_behav_dir = ExperimentNameDirectory + "\\behavior"
         _raw_behavioral_data = _base_behav_dir + "\\RawBehavioralData"
         _behavioral_exports = _base_behav_dir + "\\BehavioralExports"
         _deep_lab_cut_data = _base_behav_dir + "\\DeepLabCutData"
@@ -597,7 +597,7 @@ class Mouse:
     @classmethod
     def _generate_imaging_subdirectory(cls, ExperimentNameDirectory: str) -> None:
         """
-        Generate Imaging Folder
+        Generate imaging Folder
 
         Keyword Arguments
         -----------------
@@ -608,7 +608,7 @@ class Mouse:
         :rtype: None
         """
 
-        _base_image_dir = ExperimentNameDirectory + "\\Imaging"
+        _base_image_dir = ExperimentNameDirectory + "\\imaging"
         _raw_imaging_data = _base_image_dir + "\\RawImagingData"
         _bruker_meta_data = _base_image_dir + "\\BrukerMetaData"
         try:
@@ -746,8 +746,8 @@ class Experiment:
             'directory': Directory,
             'experiment_directory': _experiment_directory,
             'analysis_folder': _experiment_directory + "\\Analysis",
-            'imaging_folder': _experiment_directory + "\\Imaging",
-            'behavior_folder': _experiment_directory + "\\Behavior",
+            'imaging_folder': _experiment_directory + "\\imaging",
+            'behavior_folder': _experiment_directory + "\\behavior",
             "figures_folder": Figures("".join([_experiment_directory, "\\Figures"])),
         }
 
@@ -900,7 +900,7 @@ class ImagingExperiment(Experiment):
         :type ImagingParameters: Optional[dict]
         :rtype: Any
         """
-        # Load Behavior
+        # Load behavior
         if self.data is not None:
             input("\nDetected there is currently data loaded!\n Would you like to Overwrite?(Y/N)\n")
             if "y" in input.lower():
@@ -908,7 +908,7 @@ class ImagingExperiment(Experiment):
             else:
                 return
 
-        # Load Imaging Meta
+        # Load imaging Meta
         if ImagingParameters is not None:
             self._load_bruker_meta_data()
 
@@ -977,7 +977,7 @@ class ImagingExperiment(Experiment):
         self.folder_dictionary["bruker_meta_data"].reindex()
         _files = self.folder_dictionary["bruker_meta_data"].find_all_ext("xml")
         _files = [_files[0], _files[2], _files[1]]
-        # Rearrange as Imaging, Voltage Recording, Voltage Output
+        # Rearrange as imaging, Voltage Recording, Voltage Output
         self.meta = self._load_bruker_meta_file(_files)
 
     @staticmethod
@@ -1067,7 +1067,7 @@ class BehavioralExperiment(Experiment):
         :rtype: Any
         """
 
-        # Load Behavior
+        # Load behavior
         if self.data is not None:
             input("\nDetected there is currently data loaded!\n Would you like to Overwrite?(Y/N)\n")
             if input == "Y" or input == "Yes" or input == "Ye" or input == "es":
@@ -1142,7 +1142,7 @@ class BehavioralExperiment(Experiment):
         # Parse Channel IDs
         if HardwareConfig is None:
             _analog_dictionary = {
-                "Imaging Sync": 0,
+                "imaging Sync": 0,
                 "Motor Position": 1,
                 "Force": 3,
             }
@@ -1152,7 +1152,7 @@ class BehavioralExperiment(Experiment):
         else:
             print("Not yet implemented, reverting to defaults")
             _analog_dictionary = {
-                "Imaging Sync": 0,
+                "imaging Sync": 0,
                 "Motor Position": 1,
                 "Force": 3,
             }
@@ -1285,7 +1285,7 @@ class BehavioralExperiment(Experiment):
 class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
     """
     :class:`Experiment <Management.Organization.Experiment>` class for a generic day of an
-    :class:`Imaging <Management.Organization.ImagingExperiment>` /
+    :class:`imaging <Management.Organization.ImagingExperiment>` /
     :class:`Behavioral <Management.Organization.BehavioralExperiment>` experiment
 
     **Required Inputs**
@@ -1336,7 +1336,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
         :param kwargs: passed to internal functions taking kwargs
         :rtype: Any
         """
-        # Load Behavior
+        # Load behavior
         if self.data is not None:
             input("\nDetected there is currently data loaded!\n Would you like to Overwrite?(Y/N)\n")
             if input == "Y" or input == "Yes" or input == "Ye" or input == "es":
@@ -1346,11 +1346,11 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
 
         self._load_base_behavior()
 
-        # Load Imaging Meta
+        # Load imaging Meta
         if ImagingParameters is not None:
             self._load_bruker_meta_data()
 
-        # Sync Imaging Data
+        # Sync imaging Data
         if args and ImagingParameters is not None:
             if isinstance(ImagingParameters, dict):
                 self.data = self._sync_bruker_recordings(self.data, self._load_bruker_analog_recordings(), self.meta,
@@ -1363,7 +1363,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
                 for _sampling in range(1, ImagingParameters.__len__(), 1):
                     self.data = self._sync_grouped_z_projected_images(
                         self.data, self.meta, ImagingParameters[_sampling],
-                        "".join(["Down-sampled Imaging Frame Set ", str(_sampling)]))
+                        "".join(["Down-sampled imaging Frame Set ", str(_sampling)]))
 
     def copy_data(self) -> Self:
         self.copy_raw_imaging_data()
@@ -1421,7 +1421,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
                                                 AnalogRecordings["Time(ms)"].to_numpy()[_first_peak_diff] / int(
                                     MetaData.acquisition_rate), decimals=3) + DataFrame.index.to_numpy()[0])
             _frames = _frames[_frames.index >= 0 + DataFrame.index.to_numpy()[0]].copy(deep=True)
-            _frames.name = "Imaging Frame"
+            _frames.name = "imaging Frame"
         else:
             print("Already Synced")
 
@@ -1452,7 +1452,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
             _frames.ffill(inplace=True)
         elif _fill_method == "nearest":
             _frames.interpolate(method="nearest", inplace=True)
-        _frames = _frames.rename(columns={"Imaging Frame": "[FILLED] Imaging Frame"})
+        _frames = _frames.rename(columns={"imaging Frame": "[FILLED] imaging Frame"})
 
         DataFrame = DataFrame.join(_frames.copy(deep=True))
 
@@ -1486,7 +1486,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
         if args:
             _name = args[0]
         else:
-            _name = "Downsampled Imaging Frame"
+            _name = "Downsampled imaging Frame"
 
         # parse params
         _bin_size = Parameters.get(("preprocessing", "grouped-z project bin size"))
@@ -1512,7 +1512,7 @@ class ImagingBehaviorExperiment(ImagingExperiment, BehavioralExperiment):
         for _frame in range(_matching_frames.__len__()):
             try:
                 _time_stamp[_frame] = DataFrame.index.to_numpy()[
-                    np.where(DataFrame["Imaging Frame"].to_numpy() == _matching_frames[_frame])[0]]
+                    np.where(DataFrame["imaging Frame"].to_numpy() == _matching_frames[_frame])[0]]
             except ValueError:
                 pass
         _true_idx = np.where(_time_stamp != -1)[0]
@@ -2096,7 +2096,7 @@ class ImagingAnalysis(Data):
 
         # Dynamic imports because \m/_(>.<)_\m/
         print("Loading Suite2p...")
-        from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
+        from imaging.tool_wrappers.Suite2PModule import Suite2PAnalysis
         suite2p_module = Suite2PAnalysis(self.folders.get(_folder), self.path, file_type="binary")
         suite2p_module.load_files() # load the files
         suite2p_module.db = suite2p_module.ops # make sure db never overwrites ops

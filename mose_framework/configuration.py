@@ -17,10 +17,10 @@ def default_config() -> dict:
         "cascade": None,
         "deepcad": None,
         "fissa": None,
-        "pipeline": "Imaging.imaging_analysis_pipeline",
+        "pipeline": "imaging.imaging_analysis_pipeline",
         "preprocess": None,
         "postprocess": None,
-        "suite2p": "Imaging\\suite2p_config.json"
+        "suite2p": "imaging\\suite2p_config.json"
     }
 
 

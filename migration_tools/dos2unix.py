@@ -9,8 +9,8 @@ import sys
 # if len(sys.argv[1:]) != 2:
 #  sys.exit(__doc__)
 
-inner = "D:\\EM0122\\Encoding\\Behavior\\RawBehavioralData\\ENCODING_EM0122_10_of_20_StimulusInfo.pkl"
-outer = "D:\\EM0122\\Encoding\\Behavior\\RawBehavioralData\\ENCODING_EM0122_10_of_20_StimulusInfo_conv.pkl"
+inner = "D:\\EM0122\\Encoding\\behavior\\RawBehavioralData\\ENCODING_EM0122_10_of_20_StimulusInfo.pkl"
+outer = "D:\\EM0122\\Encoding\\behavior\\RawBehavioralData\\ENCODING_EM0122_10_of_20_StimulusInfo_conv.pkl"
 
 content = ''
 outsize = 0

@@ -8,7 +8,7 @@ import numpy as np
 from tqdm.auto import tqdm
 import sklearn
 import cv2
-from Imaging.IO import save_video
+from imaging.io import save_video
 
 
 class ColorImages:

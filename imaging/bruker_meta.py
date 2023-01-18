@@ -1,4 +1,4 @@
-from SamIO.metadata import Metadata
+from sam_io.metadata import Metadata
 
 
 class BrukerMeta:
@@ -94,6 +94,6 @@ class BrukerMeta:
 
 
 if __name__ == "__main__":
-    BKM = BrukerMeta("D:\\EM0121\\PreExposure\\Imaging\\BrukerMetaData\\EM0121_PRE-001.xml")
+    BKM = BrukerMeta("D:\\EM0121\\PreExposure\\imaging\\BrukerMetaData\\EM0121_PRE-001.xml")
     BKM.import_meta_data()
     print(BKM.zoom)

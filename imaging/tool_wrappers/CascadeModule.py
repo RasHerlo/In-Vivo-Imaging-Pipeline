@@ -76,7 +76,7 @@ class CascadeAnalysis:
 
         :param file_path: Filepath to an array of neurons by frames. Can be .npy or .mat
         :type file_path: str
-        :param framerate: Imaging Frequency
+        :param framerate: imaging Frequency
         :type framerate: float
         """
 

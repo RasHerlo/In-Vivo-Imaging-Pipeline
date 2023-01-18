@@ -344,7 +344,7 @@ class Metadata():
                             if 'laserPower' in element.values():
                                 for element2 in element.values():
                                     if isinstance(element2, dict):
-                                        if 'Imaging' in element2.values():
+                                        if 'imaging' in element2.values():
                                             iplane['ImagingSlider'] = float(element2['value'])
                                         if 'Uncaging' in element2.values():
                                             iplane['UncagingSlider'] = float(element2['value'])
@@ -447,7 +447,7 @@ class Metadata():
                             if 'laserPower' in element.values():
                                 for element2 in element.values():
                                     if isinstance(element2, dict):
-                                        if 'Imaging' in element2.values():
+                                        if 'imaging' in element2.values():
                                             iplane['ImagingSlider'] = float(element2['value'])
                                         if 'Uncaging' in element2.values():
                                             iplane['UncagingSlider'] = float(element2['value'])
@@ -514,7 +514,7 @@ class Metadata():
                             if 'laserPower' in element.values():
                                 for element2 in element.values():
                                     if isinstance(element2, dict):
-                                        if 'Imaging' in element2.values():
+                                        if 'imaging' in element2.values():
                                             iframe['ImagingSlider'] = float(element2['value'])
                                         if 'Uncaging' in element2.values():
                                             iframe['UncagingSlider'] = float(element2['value'])
@@ -920,7 +920,7 @@ class Metadata():
         self.aquisition_object.full_database_dictionary
         self.acquisition_metadata = self.aquisition_object.full_database_dictionary['Acq'].to_dict('records')[0]
 
-        self.imaging_metadata_database = self.aquisition_object.full_database_dictionary['Imaging'].to_dict('records')
+        self.imaging_metadata_database = self.aquisition_object.full_database_dictionary['imaging'].to_dict('records')
         if self.imaging_metadata_database:
             self.translated_imaging_metadata = copy.copy(self.imaging_metadata_database[0])
             self.translated_imaging_metadata['CorrectedObjectivePositions'] = self.translated_imaging_metadata[

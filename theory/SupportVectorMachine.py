@@ -10,7 +10,7 @@ from sklearn import metrics
 from sklearn import model_selection
 
 # Inheritance <-
-from Theory.DecodingAnalysis import DecodingModule, PerformanceMetrics
+from theory.DecodingAnalysis import DecodingModule, PerformanceMetrics
 
 
 class SVM(DecodingModule):
