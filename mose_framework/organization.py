@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 import importlib
-
 import json_tricks
 from typing import Union, Tuple, List, Optional
 import os
@@ -17,13 +15,10 @@ from shutil import copytree
 from Imaging.IO import save_raw_binary, determine_bruker_folder_contents, repackage_bruker_tiffs, \
     pretty_print_bruker_command, load_all_tiffs
 from MigrationTools.Converters import renamed_load
-from Management.UserInterfaces import select_directory, verbose_copying, validate_string, validate_path_string, \
-    select_file, validate_config_format
+from mose_framework.user_interfaces import select_directory, verbose_copying, validate_string, validate_path_string, \
+    select_file, validate_config_format, terminal_style
 from Imaging.BrukerMetaModule import BrukerMeta
 from itertools import product
-from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
-from Management.Wrapping import read_wrapper
-from Notebooks.Demo_pipeline import pipeline
 
 
 class Study:
@@ -94,9 +89,11 @@ class Mouse:
         self._mouse_id = None
         self._experimental_condition = None
         self._log_file = None
+        self._organization_file = None
 
         # Protected In Practice
         self.log_file = kwargs.get('LogFile', None)
+        self.organization_file = kwargs.get("OrganizationFile", None)
         self.mouse_id = kwargs.get('Mouse', None)
         self.experimental_condition = kwargs.get('Condition', None)
         self.__instance_date = get_date()
@@ -113,14 +110,36 @@ class Mouse:
                 self.directory = os.getcwd()
             self.create()
 
-
-
         # start logging if log file exists
         if self.log_file is not None:
             self.start_log()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.end_log()
+
+    def __str__(self):
+        return "".join([f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Mouse:{terminal_style.RESET} {self.mouse_id}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Study:{terminal_style.RESET} {self.study}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Study Mouse ID:{terminal_style.RESET} "
+                        f"{self.study_mouse}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Experimental Condition:{terminal_style.RESET} "
+                        f"{self.experimental_condition}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Date Created:{terminal_style.RESET} "
+                        f"{self.instance_date}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Directory:{terminal_style.RESET} "
+                        f"{self.directory}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Log File:{terminal_style.RESET} "
+                        f"{self.log_file}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Organization File:{terminal_style.RESET} "
+                        f"{self.organization_file}",
+                        f"\n{terminal_style.BOLD}{terminal_style.YELLOW}Experiments:{terminal_style.RESET} ",
+                        "".join([f"{_experiment}" for _experiment in self.experiments]),
+                        "\n"
+                        f"\nLast modified on "
+                        f"{terminal_style.GREEN}{self.modifications[-1][0]}{terminal_style.RESET} "
+                        f"at "
+                        f"{terminal_style.GREEN}{self.modifications[-1][1]}{terminal_style.RESET}"
+                        ])
 
     @property
     def experimental_condition(self) -> str:
@@ -179,6 +198,22 @@ class Mouse:
         :rtype: str
         """
         return self._Mouse__instance_date
+
+    @property
+    def organization_file(self) -> str:
+        """ Organization file in .json format
+
+        :rtype: str
+        """
+
+        return self._organization_file
+
+    @organization_file.setter
+    def organization_file(self, Path) -> Self:
+        if self._organization_file is None:
+            self._organization_file = Path
+        elif self._organization_file is not None:
+            print("Organization file can only be set ONCE.")
 
     # noinspection All
     def check_log(self) -> Self:  # noinspection All
@@ -339,10 +374,11 @@ class Mouse:
             # noinspection PyAttributeOutsideInit
             self._IP = False
 
-        _output_file = self.directory + "\\" + "organization.json"
+        if self._organization_file is None:
+            self._organization_file = self.directory + "\\" + "organization.json"
 
         _outputs = json_tricks.dumps(self, indent=0)
-        with open(_output_file, "w") as f:
+        with open(self._organization_file, "w") as f:
             f.write(_outputs)
         f.close()
 
@@ -764,9 +800,17 @@ class ImagingExperiment(Experiment):
         :rtype: Any
         """
 
+        def import_pipeline_function():
+            """
+            Simply imports a pipeline function from a dictionary
+            ugly!!!!
+            """
+            nonlocal Pipeline
+            return importlib.import_module(Pipeline.get("pipeline"))
+
         # Interactive File Selection
-        _interactive = kwargs.get("interactive", True)
-        if _interactive:
+        _interactive = kwargs.get("interactive", False)
+        if _interactive or Pipeline is None:
             Pipeline = select_file(title="Select Pipeline File")
 
 
@@ -781,6 +825,9 @@ class ImagingExperiment(Experiment):
                     Pipeline = json_tricks.loads(_file.read())
         if not isinstance(Pipeline, dict):
             TypeError("Please load a configuration dictionary or its filepath")
+
+        # pull pipeline function
+        pipeline_fun = import_pipeline_function().pipeline
 
         # Identify channels and planes (unique imaging data sets)
         _channels, _planes = determine_bruker_folder_contents(
@@ -799,8 +846,7 @@ class ImagingExperiment(Experiment):
 
 
             # Run Pipeline
-            pipeline(self, FrameRate, _combo, _name, Pipeline)
-
+            pipeline_fun(self, FrameRate, _combo, _name, Pipeline)
 
     def add_image_analysis_folder(self, SamplingRate: Union[int, float], *args: Optional[str]) -> Self:
         """
@@ -865,10 +911,6 @@ class ImagingExperiment(Experiment):
         # Load Imaging Meta
         if ImagingParameters is not None:
             self._load_bruker_meta_data()
-
-    def _pipeline(self, FrameRate, Name, Config):
-        pipeline = importlib.import_module(Config.get("pipeline"))
-        pipeline.run_pipeline(self, FrameRate, Name, Config)
 
     @classmethod
     def _generate_imaging_sampling_rate_subdirectory(cls, SampFreqDirectory: str) -> None:

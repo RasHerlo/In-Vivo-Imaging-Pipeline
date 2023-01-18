@@ -1,31 +1,47 @@
 from __future__ import annotations
 from typing import Tuple, Union, Callable
-import Management.Organization
-from Management.Wrapping import read_wrapper, wrapped_process
+import mose_framework.organization
+from mose_framework.wrapping import read_wrapper, wrapped_process
 from Imaging.ToolWrappers.Suite2PModule import Suite2PAnalysis
 from Imaging.ToolWrappers.FissaModule import FissaAnalysis
 from Imaging.ToolWrappers.CascadeModule import CascadeAnalysis
 from Imaging.IO import load_all_tiffs, save_raw_binary, repackage_bruker_tiffs
+from Imaging.ImageProcessing import remove_shutter_artifact
+from Imaging.SignalProcessing import calculateFiringRate
+from Imaging.Utilities import mergeTraces
 import numpy as np
+import json_tricks
+import os
 
 
 def pipeline(Obj, FrameRate, Combo, Name, Config):
+
 
     # 0. Compile
     repackage_bruker_tiffs(Obj.folder_dictionary.get("raw_imaging_data").path,
                            Obj.folder_dictionary.get(Name).folders.get("compiled"),
                            Combo)
 
+
     # 1. Pre-Process
     _images = load_all_tiffs(Obj.folder_dictionary.get(Name).folders.get("compiled"))
     # _images = wrapped_process(_images, *read_wrapper(Config.get("preprocess")).interface())
+    # _images = remove_shutter_artifact(_images)
     save_raw_binary(_images, Obj.folder_dictionary.get(Name).folders.get("compiled"))
+    Obj.folder_dictionary.get(Name).clean_up_compilation()
     _frames, _y, _x = _images.shape  # (Any cropping should ALWAYS be taken from the front of the dataset)
     _images = None
 
     # 1. Motion-Correct
+    _ops_file = Config.get("suite2p")
+    with open(_ops_file, "r") as f:
+        _config_ops = json_tricks.loads(f.read())
+    f.close()
+    _config_ops = dict(_config_ops)
+
     _s2p = Suite2PAnalysis(Obj.folder_dictionary.get(Name).folders.get("compiled"),
-                           Obj.folder_dictionary.get(Name).path, file_type="binary")
+                           Obj.folder_dictionary.get(Name).path, file_type="binary",
+                           ops=_config_ops)
     _s2p.motionCorrect()
 
     # 2. Denoise
@@ -57,17 +73,17 @@ def pipeline(Obj, FrameRate, Combo, Name, Config):
 
     # Post-Processing
     _traces = _fissa.experiment.result,
-    #traces = wrapped_process(_traces, *read_wrapper(Config.get("postprocess")).interface())
-    _fissa.ProcessedTraces.detrended_merged_dFoF_result, = _traces
+    # traces = wrapped_process(_traces, *read_wrapper(Config.get("postprocess")).interface())
+    _fissa.ProcessedTraces.detrended_merged_dFoF_result = mergeTraces(_traces)
     _fissa.saveProcessedTraces()
 
     # Spike Probability
     _cascade = CascadeAnalysis(_fissa.ProcessedTraces.detrended_merged_dFoF_result, FrameRate,
-                               model_folder="C:\\ProgramData\\Anaconda3\\envs\\Calcium-Imaging-Analysis-Pipeline\\Pretrained_models",
+                               model_folder="Pretrained_models",
                                SavePath=Obj.folder_dictionary.get(Name).folders.get("cascade"))
     _cascade.model_name = "Global_EXC_10Hz_smoothing100ms"
     _cascade.predictSpikeProb()
-    _cascade.ProcessedInferences.firing_rates = Processing.calculateFiringRate(_cascade.spike_prob, _cascade.frame_rate)
+    _cascade.ProcessedInferences.firing_rates = calculateFiringRate(_cascade.spike_prob, _cascade.frame_rate)
     _cascade.saveSpikeProb(_cascade.save_path)
     _cascade.saveProcessedInferences(_cascade.save_path)
 

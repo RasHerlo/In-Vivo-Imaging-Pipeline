@@ -57,30 +57,6 @@ def select_file(**kwargs) -> Union[str, None]:
     return path
 
 
-def select_file(**kwargs) -> Union[str, None]:
-    """
-    Interactive tool for directory selection. All keyword arguments are
-    passed to `tkinter.filedialog.askopenfilename <https://docs.python.org/3/library/tk.html>`_
-
-    :param kwargs: keyword arguments
-    :return: absolute path to file or None
-    :rtype: str
-    """
-    # Make Root
-    root = tk.Tk()
-
-    # select path
-    # noinspection PyArgumentList
-    path = askopenfilename(**kwargs)
-    path = str(pathlib.Path(path))
-    if path == ".":
-        path = None
-
-    # destroy root
-    root.destroy()
-    return path
-
-
 def verbose_copying(SourceFolder: Union[str, pathlib.Path], DestinationFolder: Union[str, pathlib.Path]) -> None:
     """
     Verbose copying of one folder's contents to another
@@ -129,3 +105,13 @@ def validate_path_string(Path: str) -> bool:
 
 def validate_config_format(String: str) -> bool:
     return ".json" in String
+
+
+class terminal_style:
+    RED = "\u001b[31m"
+    GREEN = "\u001b[32m"
+    BLUE = "\u001b[34m"
+    YELLOW = "\u001b[38;5;11m"
+    BOLD = "\u001b[1m"
+    UNDERLINE = "\u001b[7m"
+    RESET = "\033[0m"

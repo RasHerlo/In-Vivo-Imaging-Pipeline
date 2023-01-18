@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional
 import json_tricks
 import os
-from Management.UserInterfaces import validate_path_string, validate_string
+from mose_framework.user_interfaces import validate_path_string, validate_string
 
 
 def default_config() -> dict:
@@ -17,10 +17,10 @@ def default_config() -> dict:
         "cascade": None,
         "deepcad": None,
         "fissa": None,
-        "pipeline": "Notebooks.Demo_pipeline",
-        "preprocess": "".join([os.getcwd(), "\\Notebooks\\preprocessing_demo.json"]),
+        "pipeline": "Imaging.imaging_analysis_pipeline",
+        "preprocess": None,
         "postprocess": None,
-        "suite2p": default_suite2p()
+        "suite2p": "Imaging\\suite2p_config.json"
     }
 
 

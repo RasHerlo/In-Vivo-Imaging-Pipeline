@@ -5,7 +5,7 @@ import importlib
 from typing import Optional, Callable, Tuple
 from json_tricks import dumps, loads
 import numpy as np
-from Management.UserInterfaces import validate_path_string, validate_string
+from mose_framework.user_interfaces import validate_path_string, validate_string
 
 
 class FunctionWrapper:
