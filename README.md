@@ -13,5 +13,3 @@ Simply a repo for the analysis of *in vivo* calcium imaging and optogenetics exp
 + Pull out IO for separately maintained repo (?)
 + Pull out Coloring for separately maintained repo
 
-### Coding Style
-Generally follows PEP8
